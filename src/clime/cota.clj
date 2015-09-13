@@ -6,13 +6,34 @@
 (def CLOSE_BLOCK_FRAGMENT 2)
 (def TEXT_FRAGMENT 3)
 
-(def VAR_TOKEN_START "\\{\\{")
-(def VAR_TOKEN_END "\\}\\}")
-(def BLOCK_TOKEN_START "\\{\\%")
-(def BLOCK_TOKEN_END "\\%\\}")
+(def VAR_TOKEN_START "{{")
+(def VAR_TOKEN_END "}}")
+(def BLOCK_TOKEN_START "{%")
+(def BLOCK_TOKEN_END "%}")
 
-(def TOK_REGEX (re-pattern (format "%s.*?%s|%s.*?%s" VAR_TOKEN_START VAR_TOKEN_END BLOCK_TOKEN_START BLOCK_TOKEN_END)))
+(def VAR_TOKEN_START_RE "\\{\\{")
+(def VAR_TOKEN_END_RE "\\}\\}")
+(def BLOCK_TOKEN_START_RE "\\{\\%")
+(def BLOCK_TOKEN_END_RE "\\%\\}")
+
+(def TOK_REGEX (re-pattern (format "%s.*?%s|%s.*?%s" VAR_TOKEN_START_RE VAR_TOKEN_END_RE BLOCK_TOKEN_START_RE BLOCK_TOKEN_END_RE)))
 (def WHITESPACE #"\s+")
+
+(defn take-str
+  [str' count]
+  (apply str (take count str')))
+
+(defn drop-str
+  [str' count]
+  (apply str (drop count str')))
+
+(defn drop-last-str
+  [str' count]
+  (apply str (drop-last count str')))
+
+(defn take-last-str
+  [str' count]
+  (apply str (take-last count str')))
 
 (defn tokenizer
   [template-str]
