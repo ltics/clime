@@ -38,18 +38,12 @@
 (defn type
   [fragment]
   (let [raw-start (take-str (:raw-text fragment) 2)]
-    (prn raw-start)
     (condp = raw-start
       VAR_TOKEN_START VAR_FRAGMENT
       BLOCK_TOKEN_START (if (= (take-str (:clean fragment) 3) "end")
                           CLOSE_BLOCK_FRAGMENT
                           OPEN_BLOCK_FRAGMENT)
       TEXT_FRAGMENT)))
-
-(type (clean-fragment (->Fragment "{% each vars %}")))
-(type (clean-fragment (->Fragment "{% endeach %}")))
-(type (clean-fragment (->Fragment "{{it}}")))
-(type (clean-fragment (->Fragment "cleantha")))
 
 (defn eval-expression
   [node exp]
@@ -105,8 +99,3 @@
   (let [root (->Root [])
         scope-stack (atom [root])]
     ))
-
-(render (->Variable [] "@name") {"@" {"lines" [{"name" "l1"}] "name" "p1"}})
-(render-children (->Variable [] "@name") {"@" {"lines" [{"name" "l1"}] "name" "p1"}})
-
-(render (process_fragment (->Each []) "each vars") {"vars" ["a1" "b1"]})
