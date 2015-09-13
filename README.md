@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/zjhmale/clime.svg)](https://travis-ci.org/zjhmale/clime)
+[![Build Status](https://travis-ci.org/zjhmale/clime.svg?branch=master)](https://travis-ci.org/zjhmale/clime)
 
 # clime
 
