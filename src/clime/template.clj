@@ -51,7 +51,9 @@
 
 (defprotocol Node
   (creates_scope [_])
-  (process_fragment [self fragment])
+  (enter_scope [_])
+  (exit_scope [_])
+  (process_fragment [self])
   (render [self content]))
 
 (defrecord Root [children]
@@ -62,14 +64,23 @@
 (defrecord Variable [children name]
   Node
   (creates_scope [_] false)
+  (process_fragment [self] self)
   (render [self context]
     (resolve (:name self) context)))
 
-(defrecord Each [children]
+(defrecord Text [children text]
+  Node
+  (creates_scope [_] false)
+  (process_fragment [self] self)
+  (render [self _] (:text self)))
+
+(defrecord Each [children fragment]
   Node
   (creates_scope [_] true)
-  (process_fragment [self fragment]
-    (let [it (-> (cs/split fragment WHITESPACE) second read-string)]
+  (enter_scope [_] (prn "enter each scope"))
+  (exit_scope [_] (prn "exit each scope"))
+  (process_fragment [self]
+    (let [it (-> (cs/split (:fragment self) WHITESPACE) second read-string)]
       (eval-expression self it)))
   (render [self context]
     (let [it (:it self)
@@ -94,8 +105,45 @@
          (cs/join "" (map render-child children)))
        (cs/join "" (map render-child children))))))
 
+(def cmd-construct-map
+  {"each" ->Each})
+
+(defn create-node
+  [fragment]
+  (let [type (type fragment)
+        clean (:clean fragment)
+        cmd (first (cs/split clean WHITESPACE))
+        construct-func (condp = type
+                         TEXT_FRAGMENT ->Text
+                         VAR_FRAGMENT ->Variable
+                         (cmd-construct-map cmd))]
+    (if construct-func
+      (process_fragment
+        (construct-func [] clean)))))
+
 (defn compile
-  []
-  (let [root (->Root [])
-        scope-stack (atom [root])]
-    ))
+  [template-string]
+  (let [root (->Root [])]
+    (loop [fragments (map #(clean-fragment (->Fragment %))
+                          (tokenizer template-string))
+           scope-stack [root]]
+      (if ((complement empty?) fragments)
+        (let [fragment (first fragments)]
+          (if (empty? scope-stack)
+            (throw (Exception. "nesting issues"))
+            (let [parent-scope (last scope-stack)]
+              (prn "first-parent-node -> " parent-scope)
+              (if (= (type fragment) CLOSE_BLOCK_FRAGMENT)
+                (do (exit_scope parent-scope)
+                    (recur (rest fragments) (drop-last-v scope-stack)))
+                (let [new-node (create-node fragment)]
+                  (if new-node
+                    (let [children (conj (:children parent-scope) new-node)
+                          parent-scope (assoc parent-scope :children children)
+                          scope-stack (conj (drop-last-v scope-stack) parent-scope)]
+                      (prn "second-parent-node -> " parent-scope)
+                      (if (creates_scope new-node)
+                        (do (enter_scope new-node)
+                            (recur (rest fragments) (conj scope-stack new-node)))
+                        (recur (rest fragments) scope-stack)))))))))
+        (first scope-stack)))))
