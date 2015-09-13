@@ -4,7 +4,6 @@ a micro template engine written in pure clojure
 
 ## License
 
-Copyright © 2015 FIXME
+Copyright © 2015 jihui
 
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+Distributed under the Eclipse Public License, the same as Clojure.
