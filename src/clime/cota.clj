@@ -75,6 +75,16 @@
    "<=" <=,
    ">=" >=})
 
+(defmacro create-kw-map
+  "(let [a 1 b 2 c 3] (create-kw-map a b c)) => {:a 1 :b 2 :c 3}"
+  [& syms]
+  `(zipmap (map keyword '~syms) (list ~@syms)))
+
+(defn pow
+  ([] (pow 2 2))
+  ([m] (pow m 2))
+  ([m e] (Math/pow m e)))
+
 ;;for test
 
 (defmacro is= [& body]

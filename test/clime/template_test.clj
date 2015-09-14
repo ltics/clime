@@ -41,4 +41,7 @@
     (is= (compile "{% if num > 5 %}<div>more than 5</div>{% else %}<div>less than or equal to 5</div>{% end %}" {"num" 6}) "<div>more than 5</div>")
     (is= (compile "{% if num > 5 %}<div>more than 5</div>{% else %}<div>less than or equal to 5</div>{% end %}" {"num" 5}) "<div>less than or equal to 5</div>")
     (is= (compile "{% if num > 5 %}{% each [1, 2] %}{{item}}{% end %}{% else %}{% each [3, 4] %}{{item}}{% end %}{% end %}" {"num" 5}) "34")
-    (is= (compile "{% if num > 5 %}{% each [1, 2] %}{{item}}{% end %}{% else %}{% each [3, 4] %}{{item}}{% end %}{% end %}" {"num" 6}) "12")))
+    (is= (compile "{% if num > 5 %}{% each [1, 2] %}{{item}}{% end %}{% else %}{% each [3, 4] %}{{item}}{% end %}{% end %}" {"num" 6}) "12")
+    (is= (compile "{% call pow %}" {"pow" pow}) "4.0")
+    (is= (compile "{% call pow 3 %}" {"pow" pow}) "9.0")
+    (is= (compile "{% call pow 2 3 %}" {"pow" pow}) "8.0")))

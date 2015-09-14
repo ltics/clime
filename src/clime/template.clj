@@ -159,6 +159,22 @@
                                       (:if-branch self)
                                       (:else-branch self))))))
 
+(defrecord Call [children fragment]
+  Node
+  (creates-scope [_] false)
+  (process-fragment [self]
+    (let [bits (cs/split fragment WHITESPACE)
+          callable (second bits)
+          args (map read-string (drop-v 2 bits))]
+      (merge self (create-kw-map callable args))))
+  (render [self context]
+    (let [callable (resolve (:callable self) context)
+          args (map (fn [arg]
+                      (if (symbol? arg)
+                        (resolve (str arg) context) arg))
+                    (:args self))]
+      (apply callable args))))
+
 (defn render-children
   ([node context]
    (render-children node context nil))
@@ -175,7 +191,8 @@
 (def cmd-construct-map
   {"each" ->Each
    "if"   ->If
-   "else" ->Else})
+   "else" ->Else
+   "call" ->Call})
 
 (defn create-node
   [fragment]

@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [clime.cota :refer :all]
             [clime.sweet :refer :all])
-  (:refer-clojure :exclude [resolve compile type]))
+  (:refer-clojure :exclude [resolve render type]))
 
 (deftest each-test
   (testing "test-each-iterable-in-context"
@@ -45,3 +45,10 @@
       (is= (render tpl {"items" nil}) "")
       (is= (render tpl {"items" ""}) "")
       (is= (render tpl {"items" [1]}) "we have items"))))
+
+(deftest call-test
+  (testing "test-no-args"
+    (is= (render "{% call pow %}" {"pow" pow}) "4.0"))
+  (testing "test-positional-args"
+    (is= (render "{% call pow 3 %}" {"pow" pow}) "9.0")
+    (is= (render "{% call pow 2 3 %}" {"pow" pow}) "8.0")))
