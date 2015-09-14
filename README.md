@@ -4,6 +4,12 @@
 
 a micro template engine written in pure clojure
 
+## todo
+
+* call
+* render-template
+* a project work with compojure and a simple note
+
 ## License
 
 Copyright © 2015 jihui
