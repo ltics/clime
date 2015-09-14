@@ -36,4 +36,6 @@
     (is= (render (compile "cleantha{% each items %}<div>{{item}}</div>{% end %}") {"items" ["a1" "b1"]}) "cleantha<div>a1</div><div>b1</div>")
     (is (compile "{% if num > 5 %}<div>more than 5</div>{% end %}"))
     (is= (render (compile "{% if num > 5 %}<div>more than 5</div>{% end %}") {"num" 6}) "<div>more than 5</div>")
-    (is= (render (compile "{% if num > 5 %}<div>more than 5</div>{% end %}") {"num" 5}) "")))
+    (is= (render (compile "{% if num > 5 %}<div>more than 5</div>{% end %}") {"num" 5}) "")
+    (is= (render (compile "{% if num > 5 %}<div>more than 5</div>{% else %}<div>less than or equal to 5</div>{% end %}") {"num" 6}) "<div>more than 5</div>")
+    (is= (render (compile "{% if num > 5 %}<div>more than 5</div>{% else %}<div>less than or equal to 5</div>{% end %}") {"num" 5}) "<div>less than or equal to 5</div>")))

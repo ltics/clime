@@ -104,7 +104,8 @@
 (defrecord Else [children fragment]
   Node
   (creates_scope [_] false)
-  (render [self _] self))
+  (process_fragment [self] self)
+  (render [self _]))
 
 (defn resolve-side
   [side context]
@@ -120,12 +121,13 @@
                   :else-branch []}]
     (let [child (first children)]
       (if ((complement empty?) children)
-        (if (instance? Else child)
-          (recur (rest children) :else-branch branchs)
+        (if (instance? Else @child)
+          (do (prn "it's a else node")
+              (recur (rest children) :else-branch branchs))
           (recur (rest children) curr (update-in branchs [curr] conj child)))
         (let [{:keys [if-branch else-branch]} branchs]
-          {:if-branch (map deref if-branch)
-           :else-branch (map deref else-branch)})))))
+          {:if-branch   (mapv deref if-branch)
+           :else-branch (mapv deref else-branch)})))))
 
 (defrecord If [children fragment]
   Node
@@ -154,6 +156,9 @@
                                (op lhs rhs))
                              (throw-template-syntax-error op-name))
                            (truth? lhs))]
+      (prn "exec-if-branch -> " exec-if-branch)
+      (prn "if-branch" (:if-branch self))
+      (prn "else-branch" (:else-branch self))
       (render-children self context (if exec-if-branch
                                       (:if-branch self)
                                       (:else-branch self))))))
