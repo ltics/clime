@@ -6,9 +6,11 @@ a micro template engine written in pure clojure
 
 ## todo
 
+* reconstruct
 * call
 * render-template
-* a project work with compojure and a simple note
+* a project work with compojure
+* add a note
 
 ## License
 
