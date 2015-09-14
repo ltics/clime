@@ -54,10 +54,18 @@
   [template-str]
   (let [special (re-seq TOK_REGEX template-str)
         normal (clojure.string/split template-str TOK_REGEX)]
-    (->> (map (fn [s n]
-                [n s]) special normal)
-         (apply concat)
-         (filter (complement empty?)))))
+    (if (empty? normal)
+      special
+      (->> (map (fn [s n]
+                  [n s]) special normal)
+           (apply concat)
+           (filter (complement empty?))))))
+
+(defn deref-nested-atoms
+  [atoms nested-key]
+  (let [val @atoms
+        nested (nested-key val)]
+    (assoc val nested-key (mapv #(deref-nested-atoms % nested-key) nested))))
 
 (def operator_lookup_table
   {"<"  <,

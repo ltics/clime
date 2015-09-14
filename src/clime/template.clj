@@ -63,7 +63,7 @@
   (enter_scope [_])
   (exit_scope [_])
   (process_fragment [self])
-  (render [self content]))
+  (render [self context]))
 
 (defrecord Root [children]
   Node
@@ -89,7 +89,7 @@
   (enter_scope [self] (do (prn "enter each scope") self))
   (exit_scope [self] (do (prn "exit each scope") self))
   (process_fragment [self]
-    (let [it (-> (cs/split (:fragment self) WHITESPACE) second)]
+    (let [it (apply str (-> (cs/split (:fragment self) WHITESPACE) rest))]
       (eval-expression self it :it)))
   (render [self context]
     (let [it (:it self)
@@ -122,12 +122,11 @@
     (let [child (first children)]
       (if ((complement empty?) children)
         (if (instance? Else @child)
-          (do (prn "it's a else node")
-              (recur (rest children) :else-branch branchs))
+          (recur (rest children) :else-branch branchs)
           (recur (rest children) curr (update-in branchs [curr] conj child)))
         (let [{:keys [if-branch else-branch]} branchs]
-          {:if-branch   (mapv deref if-branch)
-           :else-branch (mapv deref else-branch)})))))
+          {:if-branch   (mapv #(deref-nested-atoms % :children) if-branch)
+           :else-branch (mapv #(deref-nested-atoms % :children) else-branch)})))))
 
 (defrecord If [children fragment]
   Node
@@ -156,9 +155,6 @@
                                (op lhs rhs))
                              (throw-template-syntax-error op-name))
                            (truth? lhs))]
-      (prn "exec-if-branch -> " exec-if-branch)
-      (prn "if-branch" (:if-branch self))
-      (prn "else-branch" (:else-branch self))
       (render-children self context (if exec-if-branch
                                       (:if-branch self)
                                       (:else-branch self))))))
@@ -194,13 +190,7 @@
       (process_fragment
         (construct-func [] clean)))))
 
-(defn deref-nested-atoms
-  [atoms nested-key]
-  (let [val @atoms
-        nested (nested-key val)]
-    (assoc val nested-key (mapv #(deref-nested-atoms % nested-key) nested))))
-
-(defn compile
+(defn compile*
   [template-string]
   (let [root (atom (->Root []))]
     (loop [fragments (map #(clean-fragment (->Fragment %))
@@ -225,3 +215,7 @@
                           (recur (rest fragments) scope-stack))))))))))
         (deref-nested-atoms
           (first scope-stack) :children)))))
+
+(defn compile
+  [template-string context]
+  (render (compile* template-string) context))
