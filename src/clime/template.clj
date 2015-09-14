@@ -19,6 +19,14 @@
         (resolve' name context))
       (resolve' name context))))
 
+(defn throw-template-error
+  [msg]
+  (throw (Exception. msg)))
+
+(defn throw-template-syntax-error
+  [error-syntax]
+  (throw (Exception. (format "'%s' seems like invalid syntax" error-syntax))))
+
 (declare render-children)
 
 (defrecord Fragment [raw-text])
@@ -46,8 +54,9 @@
       TEXT_FRAGMENT)))
 
 (defn eval-expression
-  [node exp]
-  (assoc node :it [(if (symbol? exp) "name" "literal") exp]))
+  [node exp key]
+  (let [ast-eval (read-string exp)]
+    (assoc node key [(if (symbol? ast-eval) "name" "literal") ast-eval])))
 
 (defprotocol Node
   (creates_scope [_])
@@ -80,8 +89,8 @@
   (enter_scope [self] (do (prn "enter each scope") self))
   (exit_scope [self] (do (prn "exit each scope") self))
   (process_fragment [self]
-    (let [it (-> (cs/split (:fragment self) WHITESPACE) second read-string)]
-      (eval-expression self it)))
+    (let [it (-> (cs/split (:fragment self) WHITESPACE) second)]
+      (eval-expression self it :it)))
   (render [self context]
     (let [it (:it self)
           items (if (= (first it) "literal")
@@ -91,6 +100,63 @@
                         (render-children self {"@"    context
                                                "item" item}))]
       (cs/join "" (map render-item items)))))
+
+(defrecord Else [children fragment]
+  Node
+  (creates_scope [_] false)
+  (render [self _] self))
+
+(defn resolve-side
+  [side context]
+  (if (= (first side) "literal")
+    (second side)
+    (resolve (str (second side)) context)))
+
+(defn split-children
+  [node]
+  (loop [children (:children node)
+         curr :if-branch
+         branchs {:if-branch   []
+                  :else-branch []}]
+    (let [child (first children)]
+      (if ((complement empty?) children)
+        (if (instance? Else child)
+          (recur (rest children) :else-branch branchs)
+          (recur (rest children) curr (update-in branchs [curr] conj child)))
+        (let [{:keys [if-branch else-branch]} branchs]
+          {:if-branch (map deref if-branch)
+           :else-branch (map deref else-branch)})))))
+
+(defrecord If [children fragment]
+  Node
+  (creates_scope [_] true)
+  (enter_scope [self] (do (prn "enter if scope") self))
+  (exit_scope [self] (do (prn "exit if scope")
+                         (let [branches (split-children self)]
+                           (merge self branches))))
+  (process_fragment [self]
+    (let [fragment (:fragment self)
+          bits (drop-v 1 (cs/split fragment WHITESPACE))]
+      (if (not (#{1 3} (count bits)))
+        (throw-template-syntax-error fragment)
+        (let [self-with-lhs (eval-expression self (nth bits 0) :lhs)]
+          (if (= (count bits) 3)
+            (eval-expression
+              (assoc
+                self-with-lhs :op (nth bits 1))
+              (nth bits 2) :rhs)
+            self-with-lhs)))))
+  (render [self context]
+    (let [lhs (resolve-side (:lhs self) context)
+          exec-if-branch (if-let [op-name (:op self)]
+                           (if-let [op (operator_lookup_table op-name)]
+                             (let [rhs (resolve-side (:rhs self) context)]
+                               (op lhs rhs))
+                             (throw-template-syntax-error op-name))
+                           (truth? lhs))]
+      (render-children self context (if exec-if-branch
+                                      (:if-branch self)
+                                      (:else-branch self))))))
 
 (defn render-children
   ([node context]
@@ -106,7 +172,9 @@
        (cs/join "" (map render-child children))))))
 
 (def cmd-construct-map
-  {"each" ->Each})
+  {"each" ->Each
+   "if"   ->If
+   "else" ->Else})
 
 (defn create-node
   [fragment]
@@ -136,7 +204,7 @@
       (if ((complement empty?) fragments)
         (let [fragment (first fragments)]
           (if (empty? scope-stack)
-            (throw (Exception. "nesting issues"))
+            (throw-template-error "nesting issues")
             (let [parent-scope (last scope-stack)]
               (if (= (type fragment) CLOSE_BLOCK_FRAGMENT)
                 (do (swap! parent-scope exit_scope)

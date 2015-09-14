@@ -17,7 +17,13 @@
     (is= (render (->Root []) {"items" ["a1" "b1"]}) "")
     (is= (render (->Variable [] "@name") {"@" {"lines" [{"name" "l1"}] "name" "p1"}}) "p1")
     (is= (render-children (->Variable [] "@name") {"@" {"lines" [{"name" "l1"}] "name" "p1"}}) "")
-    (is= (render (process_fragment (->Each [] "each vars")) {"vars" ["a1" "b1"]}) ""))
+    (is= (render (process_fragment (->Each [] "each vars")) {"vars" ["a1" "b1"]}) "")
+    (let [ifnode (process_fragment (->If [] "if num > 5"))]
+      (is= (:lhs ifnode) ["name" 'num])
+      (is= (:op ifnode) ">")
+      (is= (:rhs ifnode) ["literal" 5]))
+    (let [ifnode (process_fragment (->If [] "if it"))]
+      (is= (:lhs ifnode) ["name" 'it])))
   (testing "create-node"
     (let [fragments (map #(clean-fragment (->Fragment %)) (tokenizer "cleantha{% each items %}<div>{{it}}</div>{% end %}"))]
       (is= (:text (create-node (first fragments))) "cleantha")
@@ -27,4 +33,7 @@
       (is= (:text (create-node (nth fragments 4))) "</div>")
       (is (nil? (create-node (last fragments))))))
   (testing "compile"
-    (is= (render (compile "cleantha{% each items %}<div>{{item}}</div>{% end %}") {"items" ["a1" "b1"]}) "cleantha<div>a1</div><div>b1</div>")))
+    (is= (render (compile "cleantha{% each items %}<div>{{item}}</div>{% end %}") {"items" ["a1" "b1"]}) "cleantha<div>a1</div><div>b1</div>")
+    (is (compile "{% if num > 5 %}<div>more than 5</div>{% end %}"))
+    (is= (render (compile "{% if num > 5 %}<div>more than 5</div>{% end %}") {"num" 6}) "<div>more than 5</div>")
+    (is= (render (compile "{% if num > 5 %}<div>more than 5</div>{% end %}") {"num" 5}) "")))

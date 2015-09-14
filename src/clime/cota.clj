@@ -19,9 +19,20 @@
 (def TOK_REGEX (re-pattern (format "%s.*?%s|%s.*?%s" VAR_TOKEN_START_RE VAR_TOKEN_END_RE BLOCK_TOKEN_START_RE BLOCK_TOKEN_END_RE)))
 (def WHITESPACE #"\s+")
 
+(defn truth?
+  [val]
+  (and ((complement nil?) val)
+       (cond
+         (number? val) ((complement zero?) val)
+         :else ((complement empty?) val))))
+
 (defn drop-last-v
   [coll]
   (vec (drop-last coll)))
+
+(defn drop-v
+  [count coll]
+  (vec (drop count coll)))
 
 (defn take-str
   [str' count]

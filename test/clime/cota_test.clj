@@ -13,4 +13,10 @@
                   <a href=\"/dashboard\">Dashboard</a>
                   {% end %}"]
       (is= (tokenizer content)
-           '("Hello, " "{{name}}" "!\n                  " "{% if role == \"admin\" %}" "\n                  <a href=\"/dashboard\">Dashboard</a>\n                  " "{% end %}")))))
+           '("Hello, " "{{name}}" "!\n                  " "{% if role == \"admin\" %}" "\n                  <a href=\"/dashboard\">Dashboard</a>\n                  " "{% end %}"))))
+  (testing "truth?"
+    (is (truth? 1))
+    (isnot (truth? 0))
+    (is (truth? "hehe"))
+    (isnot (truth? ""))
+    (isnot (truth? nil))))
