@@ -59,10 +59,10 @@
     (assoc node key [(if (symbol? ast-eval) "name" "literal") ast-eval])))
 
 (defprotocol Node
-  (creates_scope [_])
-  (enter_scope [_])
-  (exit_scope [_])
-  (process_fragment [self])
+  (creates-scope [_])
+  (enter-scope [_])
+  (exit-scope [_])
+  (process-fragment [self])
   (render [self context]))
 
 (defrecord Root [children]
@@ -72,23 +72,23 @@
 
 (defrecord Variable [children name]
   Node
-  (creates_scope [_] false)
-  (process_fragment [self] self)
+  (creates-scope [_] false)
+  (process-fragment [self] self)
   (render [self context]
     (resolve (:name self) context)))
 
 (defrecord Text [children text]
   Node
-  (creates_scope [_] false)
-  (process_fragment [self] self)
+  (creates-scope [_] false)
+  (process-fragment [self] self)
   (render [self _] (:text self)))
 
 (defrecord Each [children fragment]
   Node
-  (creates_scope [_] true)
-  (enter_scope [self] (do (prn "enter each scope") self))
-  (exit_scope [self] (do (prn "exit each scope") self))
-  (process_fragment [self]
+  (creates-scope [_] true)
+  (enter-scope [self] (do (prn "enter each scope") self))
+  (exit-scope [self] (do (prn "exit each scope") self))
+  (process-fragment [self]
     (let [it (apply str (-> (cs/split (:fragment self) WHITESPACE) rest))]
       (eval-expression self it :it)))
   (render [self context]
@@ -103,8 +103,8 @@
 
 (defrecord Else [children fragment]
   Node
-  (creates_scope [_] false)
-  (process_fragment [self] self)
+  (creates-scope [_] false)
+  (process-fragment [self] self)
   (render [self _]))
 
 (defn resolve-side
@@ -130,12 +130,12 @@
 
 (defrecord If [children fragment]
   Node
-  (creates_scope [_] true)
-  (enter_scope [self] (do (prn "enter if scope") self))
-  (exit_scope [self] (do (prn "exit if scope")
+  (creates-scope [_] true)
+  (enter-scope [self] (do (prn "enter if scope") self))
+  (exit-scope [self] (do (prn "exit if scope")
                          (let [branches (split-children self)]
                            (merge self branches))))
-  (process_fragment [self]
+  (process-fragment [self]
     (let [fragment (:fragment self)
           bits (drop-v 1 (cs/split fragment WHITESPACE))]
       (if (not (#{1 3} (count bits)))
@@ -187,7 +187,7 @@
                          VAR_FRAGMENT ->Variable
                          (cmd-construct-map cmd))]
     (if construct-func
-      (process_fragment
+      (process-fragment
         (construct-func [] clean)))))
 
 (defn compile*
@@ -202,15 +202,15 @@
             (throw-template-error "nesting issues")
             (let [parent-scope (last scope-stack)]
               (if (= (type fragment) CLOSE_BLOCK_FRAGMENT)
-                (do (swap! parent-scope exit_scope)
+                (do (swap! parent-scope exit-scope)
                     (recur (rest fragments) (drop-last-v scope-stack)))
                 (let [new-node (atom (create-node fragment))]
                   (if @new-node
                     (let [children (conj (:children @parent-scope) new-node)]
                       (swap! parent-scope assoc :children children)
                       (let [scope-stack (conj (drop-last-v scope-stack) parent-scope)]
-                        (if (creates_scope @new-node)
-                          (do (swap! new-node enter_scope)
+                        (if (creates-scope @new-node)
+                          (do (swap! new-node enter-scope)
                               (recur (rest fragments) (conj scope-stack new-node)))
                           (recur (rest fragments) scope-stack))))))))))
         (deref-nested-atoms
