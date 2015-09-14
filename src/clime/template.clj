@@ -77,8 +77,8 @@
 (defrecord Each [children fragment]
   Node
   (creates_scope [_] true)
-  (enter_scope [_] (prn "enter each scope"))
-  (exit_scope [_] (prn "exit each scope"))
+  (enter_scope [self] (do (prn "enter each scope") self))
+  (exit_scope [self] (do (prn "exit each scope") self))
   (process_fragment [self]
     (let [it (-> (cs/split (:fragment self) WHITESPACE) second read-string)]
       (eval-expression self it)))
@@ -121,9 +121,15 @@
       (process_fragment
         (construct-func [] clean)))))
 
+(defn deref-nested-atoms
+  [atoms nested-key]
+  (let [val @atoms
+        nested (nested-key val)]
+    (assoc val nested-key (mapv #(deref-nested-atoms % nested-key) nested))))
+
 (defn compile
   [template-string]
-  (let [root (->Root [])]
+  (let [root (atom (->Root []))]
     (loop [fragments (map #(clean-fragment (->Fragment %))
                           (tokenizer template-string))
            scope-stack [root]]
@@ -132,18 +138,17 @@
           (if (empty? scope-stack)
             (throw (Exception. "nesting issues"))
             (let [parent-scope (last scope-stack)]
-              (prn "first-parent-node -> " parent-scope)
               (if (= (type fragment) CLOSE_BLOCK_FRAGMENT)
-                (do (exit_scope parent-scope)
+                (do (swap! parent-scope exit_scope)
                     (recur (rest fragments) (drop-last-v scope-stack)))
-                (let [new-node (create-node fragment)]
-                  (if new-node
-                    (let [children (conj (:children parent-scope) new-node)
-                          parent-scope (assoc parent-scope :children children)
-                          scope-stack (conj (drop-last-v scope-stack) parent-scope)]
-                      (prn "second-parent-node -> " parent-scope)
-                      (if (creates_scope new-node)
-                        (do (enter_scope new-node)
-                            (recur (rest fragments) (conj scope-stack new-node)))
-                        (recur (rest fragments) scope-stack)))))))))
-        (first scope-stack)))))
+                (let [new-node (atom (create-node fragment))]
+                  (if @new-node
+                    (let [children (conj (:children @parent-scope) new-node)]
+                      (swap! parent-scope assoc :children children)
+                      (let [scope-stack (conj (drop-last-v scope-stack) parent-scope)]
+                        (if (creates_scope @new-node)
+                          (do (swap! new-node enter_scope)
+                              (recur (rest fragments) (conj scope-stack new-node)))
+                          (recur (rest fragments) scope-stack))))))))))
+        (deref-nested-atoms
+          (first scope-stack) :children)))))

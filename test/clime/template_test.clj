@@ -25,4 +25,6 @@
       (is= (:text (create-node (nth fragments 2))) "<div>")
       (is= (:name (create-node (nth fragments 3))) "it")
       (is= (:text (create-node (nth fragments 4))) "</div>")
-      (is (nil? (create-node (last fragments)))))))
+      (is (nil? (create-node (last fragments))))))
+  (testing "compile"
+    (is= (render (compile "cleantha{% each items %}<div>{{item}}</div>{% end %}") {"items" ["a1" "b1"]}) "cleantha<div>a1</div><div>b1</div>")))
