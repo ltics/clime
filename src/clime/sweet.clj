@@ -1,5 +1,5 @@
 (ns clime.sweet
-  (:require [clime.template :refer :all :exclude [render]])
+  (:require [clime.compile :refer :all :exclude [render]])
   (:refer-clojure :exclude [resolve compile type]))
 
 (defn render

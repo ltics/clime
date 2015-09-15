@@ -1,7 +1,8 @@
 (ns clime.template-test
   (:require [clojure.test :refer :all]
             [clime.cota :refer :all]
-            [clime.template :refer :all])
+            [clime.node :refer :all]
+            [clime.compile :refer :all])
   (:refer-clojure :exclude [resolve compile type]))
 
 (deftest template-test
